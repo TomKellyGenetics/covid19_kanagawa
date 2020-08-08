@@ -7,31 +7,45 @@ tokyo_data <- vroom::vroom("130001_tokyo_covid19_patients.csv")
 tokyo_data <- as.data.frame(tokyo_data )
 dim(tokyo_data)
 
-#9411 cases reported in Tokyo (to tokyo_data 2020/07/23)
-head(tokyo_data)
-#all in Tokyo
-table(tokyo_data$都道府県名)
+system("curl https://www.pref.kanagawa.jp/osirase/1369/data/csv/patient.csv -o kanagawa_covid19_patients.csv")
+system("wget https://www.pref.kanagawa.jp/osirase/1369/data/csv/patient.csv")
+
+library("vroom")
+locale_jp <- locale(encoding = "CP932")
+kanagawa_data <- vroom::vroom("kanagawa_covid19_patients.csv", locale = locale_jp )
+kanagawa_data <- as.data.frame(kanagawa_data )
+dim(kanagawa_data)
+
+#2957 cases reported in kanagawa (to kanagawa_data 2020/08/07)
+head(kanagawa_data)
+#all in kanagawa (687  in Kawasaki, 1214 in Yokohama)
+table(kanagawa_data$居住地)
 
 #day of the week
 table(tokyo_data$曜日)
+kanagawa_data$曜日 <- tokyo_data$曜日[match(kanagawa_data$発表日, tokyo_data$公表_年月日)]
+head(kanagawa_data, 25)
+kanagawa_data$曜日[1:10] <- c("木", "火", "木", "金", "月", "火", "水", "水", "木", "木")
+kanagawa_data$曜日[23:24] <- "金"
+table(kanagawa_data$曜日)
 pdf("cases_by_day.pdf", width = 6, height = 4)
-barplot(table(tokyo_data$曜日)[c(3, 6, 5, 4, 7, 1:2)], names = c( "Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"))
+barplot(table(kanagawa_data$曜日)[c(3, 6, 5, 4, 7, 1:2)], names = c( "Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"))
 abline(h = 0)
-title(main = "Cases in Tokyo by day of the week (reported)",
-      ylab = "Cases (to date 2020/07/23)", 
-      sub = "Day reported \nSource: Tokyo Metropolitan Government Health and Welfare Bureau\n https://stopcovid19.metro.tokyo.lg.jp/en/")
+title(main = "Cases in Kanagawa by day of the week (reported)",
+      ylab = "Cases (to date 2020/08/07)", 
+      sub = "Day reported \nSource: Kanagawa Prefectural Government Health and Welfare Bureau\n https://www.pref.kanagawa.jp/osirase/1369/")
 dev.off()
-head(tokyo_data$曜日)
-table(tokyo_data$曜日)[c(3, 6, 5, 4, 7, 1:2)]
+head(kanagawa_data$曜日)
+table(kanagawa_data$曜日)[c(3, 6, 5, 4, 7, 1:2)]
 
-#tokyo_data reported
-cases_per_day <- table(c(tokyo_data$公表_年月日, rep("2020-08-07", 462)))
+#kanagawa_data reported
+cases_per_day <- table(c(kanagawa_data$発表日, rep("2020-08-07", 107)))
 pdf("cases_per_day.pdf", width = 6, height = 4)
 plot(cases_per_day, 
      col = "grey35",
-     main = "Cases in Tokyo by day of the week (reported)",
-     ylab = "Cases (to date 2020/07/23)", 
-     sub = "Day reported \nSource: Tokyo Metropolitan Government Health and Welfare Bureau\n https://stopcovid19.metro.tokyo.lg.jp/en/")
+     main = "Cases in Kanagawa by day of the week (reported)",
+     ylab = "Cases (to date 2020/08/07)", 
+     sub = "Day reported \nSource: Kanagawa Prefectural Government Health and Welfare Bureau\n https://www.pref.kanagawa.jp/osirase/1369/")
 abline(h = 0)
 dev.off()
 
@@ -51,9 +65,9 @@ for(ii in 4:(length(cases_per_day)-3)){
 pdf("cases_per_day_mean.pdf", width = 6, height = 4)
 plot(cases_per_day, 
      col = "grey35",
-     main = "Cases in Tokyo by day of the week (reported)",
-     ylab = "Cases (to date 2020/07/23)", 
-     sub = "Day reported \nSource: Tokyo Metropolitan Government Health and Welfare Bureau\n https://stopcovid19.metro.tokyo.lg.jp/en/")
+     main = "Cases in Kanagawa by day of the week (reported)",
+     ylab = "Cases (to date 2020/08/07)", 
+     sub = "Day reported \nSource: Kanagawa Prefectural Government Health and Welfare Bureau\n https://www.pref.kanagawa.jp/osirase/1369/")
 abline(h = 0)
 lines(rolling_mean, col = "red", lty=1, cex = 2.5)
 legend("top", lty = 1, legend = "7-day mean (rolling)", col = "red")
@@ -62,52 +76,53 @@ dev.off()
 library("scales")
 library("RColorBrewer")
 pal = sapply(RColorBrewer::brewer.pal(9, "Set1"), alpha, 0.5)[c(2:5, 7:8, 1)]
-days <- rle(tokyo_data$曜日)$values
+days <- rle(kanagawa_data$曜日)$values
 days <- c(days[1:3], days[3], days[4:length(days)])  
 days <- factor(days, levels = c("月", "火",  "水", "木", "金", "土", "日"))
 
 pdf("cases_per_day_mean_weekly.pdf", width = 6, height = 4)
 plot(cases_per_day, 
      col = pal[as.numeric(days)],
-     main = "Cases in Tokyo by day of the week (reported)",
-     ylab = "Cases (to date 2020/07/23)", 
-     sub = "Day reported \nSource: Tokyo Metropolitan Government Health and Welfare Bureau\n https://stopcovid19.metro.tokyo.lg.jp/en/")
+     main = "Cases in Kanagawa by day of the week (reported)",
+     ylab = "Cases (to date 2020/08/07)", 
+     sub = "Day reported \nSource: Kanagawa Prefectural Government Health and Welfare Bureau\n https://www.pref.kanagawa.jp/osirase/1369/")
 abline(h = 0)
 lines(rolling_mean, col = "red", lty=1, cex = 2.5)
 legend("top", lty = 1, legend = "7-day mean (rolling)", col = "red")
 legend("topleft", fill = pal, legend = c("Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"))
 dev.off()
 
-tokyo_testing <- openxlsx::read.xlsx("20200807_tokyo_testing.xlsx", colNames = TRUE)
-tokyo_testing <- as.data.frame(tokyo_testing)
-tokyo_testing[,1] <- openxlsx::convertToDate(tokyo_testing[,1])
-colnames(tokyo_testing)[1:7] <- c("Date", "PosPCR", "PosAntigen", "NegPCR", "NegAntigen", "Testing(7-day-mean)", "PosRate")
+kanagawa_testing <- openxlsx::read.xlsx("20200807_kanagawa_testing.xlsx", colNames = TRUE)
+kanagawa_testing <- as.data.frame(kanagawa_testing)
+kanagawa_testing[,1] <- openxlsx::convertToDate(kanagawa_testing[,1])
+colnames(kanagawa_testing)[1:7] <- c("Date", "PosPCR", "PosAntigen", "NegPCR", "NegAntigen", "Testing(7-day-mean)", "PosRate")
 
-head(tokyo_testing)
-tail(tokyo_testing)
+head(kanagawa_testing)
+tail(kanagawa_testing)
 head(cases_per_day)
 tail(cases_per_day)
 
-# names(tests_per_day) <- rev(tokyo_testing$Date)
-# tests_per_day <- rev(tokyo_testing$`Testing(7-day-mean)`)
+# names(tests_per_day) <- rev(kanagawa_testing$Date)
+# tests_per_day <- rev(kanagawa_testing$`Testing(7-day-mean)`)
 # head(tests_per_day, 12)
 # tail(tests_per_day)
 ## tests usually reported with 2-3 day with weekly-averages 
 ## no longer needed as latest figures used from NHK broadcast
 #tests_per_day <- c(tests_per_day[10:length(tests_per_day)], NA, NA)
 
-total_pos <- rev(tokyo_testing$PosPCR + tokyo_testing$PosAntigen)
-total_neg <- rev(tokyo_testing$NegPCR + tokyo_testing$NegAntigen)
-pos_rate <- rev(tokyo_testing$PosRate)
+total_pos <- rev(kanagawa_testing$PosPCR + kanagawa_testing$PosAntigen)
+total_neg <- rev(kanagawa_testing$NegPCR + kanagawa_testing$NegAntigen)
+pos_rate <- rev(kanagawa_testing$PosRate)
 total_tests <- total_pos+total_neg
-testing <- rev(tokyo_testing$`Testing(7-day-mean)`)
-pos_known <- rev(tokyo_testing$PosRate)
-pos_community <- rev(tokyo_testing$pos_community)
-pos_community_weekly <- rev(tokyo_testing$pos_community_weekly)
-community_rate_change <- rev(tokyo_testing$rate_change_community)
-tests_summary <- cbind(total_pos, total_neg, total_tests, pos_rate, testing, pos_known, pos_community, pos_community_weekly, community_rate_change)
+testing <- rev(kanagawa_testing$`Testing(7-day-mean)`)
+pos_known <- rev(kanagawa_testing$PosRate)
+pos_community <- rev(kanagawa_testing$pos_community)
+pos_community_weekly <- rev(kanagawa_testing$pos_community_weekly)
+community_rate_change <- rev(kanagawa_testing$rate_change_community)
+tot_tests <- rev(kanagawa_testing$tot_tests)
+tests_summary <- cbind(total_pos, total_neg, total_tests, pos_rate, testing, pos_known, pos_community, pos_community_weekly, community_rate_change, tot_tests)
 tests_summary <- as.data.frame(tests_summary)
-tests_summary$Date <- rev(tokyo_testing$Date)
+tests_summary$Date <- rev(kanagawa_testing$Date)
 # tests_summary <- tests_summary[,c(6, 1:6)]
 # tests_summary <- tests_summary[1:nrow(tests_summary),]
 ## tests usually reported with 2-3 day with weekly-averages 
@@ -125,40 +140,52 @@ tests_summary$Date <- rev(tokyo_testing$Date)
 
 
 tests_summary$Date[match(as.Date(names(cases_per_day)), tests_summary$Date)]
-tests_per_day <- tests_summary$testing[match(as.Date(names(cases_per_day)), tests_summary$Date)]
-tests_per_day[1:6]
+tests_per_day_weekly <- tests_summary$testing[match(as.Date(names(cases_per_day)), tests_summary$Date)]
+tests_per_day_weekly[1:6]
 tail(tests_per_day)
+tests_per_day <- tests_summary$tot_tests
 
 pdf("cases_per_day_mean_weekly_tests.pdf", width = 6, height = 4)
 plot(cases_per_day, 
      ylim = c(0, max(tests_per_day, na.rm = T)),
      col = pal[as.numeric(days)],
-     main = "Cases in Tokyo by day of the week (reported)",
-     ylab = "Cases (to date 2020/07/23)", 
-     sub = "Day reported \nSource: Tokyo Metropolitan Government Health and Welfare Bureau\n https://stopcovid19.metro.tokyo.lg.jp/en/")
+     main = "Cases in Kanagawa by day of the week (reported)",
+     ylab = "Cases (to date 2020/08/07)", 
+     sub = "Day reported \nSource: Kanagawa Prefectural Government Health and Welfare Bureau\n https://www.pref.kanagawa.jp/osirase/1369/")
 abline(h = 0)
 lines(rolling_mean, col = "red", lty=1, cex = 2.5)
-lines(tests_per_day, col = "blue",  lty=1, cex = 2.5)
-legend("top", lty = c(1, 1), legend = c("cases (7-day mean)", "tests (7-day mean)"), col = c("red", "blue"))
+lines(tests_per_day_weekly, col = "blue",  lty=1, cex = 2.5)
+lines(tests_per_day, col = "blue",  lty=2, cex = 2.5)
+legend("top", lty = c(1, 1, 2), legend = c("cases (7-day mean)", "tests (7-day mean)",  "tests (daily)"), col = c("red", "blue", "blue"))
 legend("topleft", fill = pal, legend = c("Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"))
 dev.off()
 
 tests_pos_rate <- tests_summary$pos_rate[match(as.Date(names(cases_per_day)), tests_summary$Date)]
+
+length(tests_pos_rate)
+tests_pos_rate_weekly <- rep(NA, length(tests_pos_rate))
+for(ii in 4:(length(tests_pos_rate)-3)){
+  tests_pos_rate_weekly[ii] <- mean(tests_pos_rate[(ii-3):(ii+3)], na.rm = TRUE)
+}
+tests_pos_rate_weekly[which(is.na(tests_pos_rate))] <- NA
+tests_pos_rate_weekly[which(is.na(tests_pos_rate))+2] <- NA
+#tests_pos_rate_weekly[which(is.na(tests_pos_rate))-2] <- NA
 
 pdf("cases_per_day_mean_weekly_tests_pos.pdf", width = 6, height = 4)
 par(mar = c(5.1, 4.1, 4.1, 5.1))
 plot(cases_per_day, 
      #ylim = c(0, max(tests_per_day, na.rm = T)),
      col = pal[as.numeric(days)],
-     main = "Cases in Tokyo by day of the week (reported)",
-     ylab = "Cases (to date 2020/07/23)", 
-     sub = "Day reported \nSource: Tokyo Metropolitan Government Health and Welfare Bureau\n https://stopcovid19.metro.tokyo.lg.jp/en/")
+     main = "Cases in Kanagawa by day of the week (reported)",
+     ylab = "Cases (to date 2020/08/07)", 
+     sub = "Day reported \nSource: Kanagawa Prefectural Government Health and Welfare Bureau\n https://www.pref.kanagawa.jp/osirase/1369/")
 abline(h = 0)
 lines(rolling_mean, col = "red", lty=1, cex = 2.5)
-lines(tests_pos_rate * 5, col = "blue",  lty=1, cex = 2.5)
+lines(tests_pos_rate_weekly * 5, col = "blue",  lty=1, cex = 2.5)
+lines(tests_pos_rate * 5, col = "blue",  lty=2, cex = 2.5)
 axis(4, at = seq(0, 300, 25), labels = seq(0, 300, 25)/5)
 mtext("Positive rate (%)", 4, line = 3)
-legend("top", lty = c(1, 1), legend = c("cases (7-day mean)", "pos rate (7-day mean)"), col = c("red", "blue"))
+legend("top", lty = c(1, 1, 2), legend = c("cases (7-day mean)", "pos rate (7-day mean)", "pos rate (daily"), col = c("red", "blue", "blue"))
 legend("topleft", fill = pal, legend = c("Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"), cex = 0.75)
 dev.off()
 
@@ -169,9 +196,9 @@ pos_community_weekly <- pos_community_weekly[5:length(pos_community_weekly)]
 pdf("cases_per_day_mean_weekly_community.pdf", width = 6, height = 4)
 plot(cases_per_day, 
      col = pal[as.numeric(days)],
-     main = "Cases in Tokyo by day of the week (reported)",
-     ylab = "Cases (to date 2020/07/23)", 
-     sub = "Day reported \nSource: Tokyo Metropolitan Government Health and Welfare Bureau\n https://stopcovid19.metro.tokyo.lg.jp/en/")
+     main = "Cases in Kanagawa by day of the week (reported)",
+     ylab = "Cases (to date 2020/08/07)", 
+     sub = "Day reported \nSource: Kanagawa Prefectural Government Health and Welfare Bureau\n https://www.pref.kanagawa.jp/osirase/1369/")
 abline(h = 0)
 lines(rolling_mean, col = "red", lty=1, cex = 2.5)
 lines(pos_community_weekly, col = "blue",  lty=1, cex = 2.5)
@@ -405,31 +432,31 @@ estimates2 <- EpiNow2::epinow(reported_cases = d2,
 
 my_plot_estimates(estimates2, extra_title = " and positivity")
 
-#-----------------the Tokyo data--------------
+#-----------------the kanagawa data--------------
 
 head(as.data.frame(gd_orig))
 tail(as.data.frame(gd_orig))
 
-dim(tokyo_data)
-dim(tokyo_testing)
+dim(kanagawa_data)
+dim(kanagawa_testing)
 dim(cases_mat)
 dim(gd_orig)
-td_orig <- matrix(NA, length(cases_per_day), 13)
-colnames(td_orig) <- colnames(gd_orig)
-td_orig <- as.data.frame(td_orig)
-td_orig$State <- tokyo_data$都道府県名[1]
-td_orig$Date <- as.Date(names(cases_per_day))
-td_orig$Time <- rep(NA, nrow(td_orig))
-td_orig$`Cumulative case count` <- cumsum(cases_per_day)
-td_orig$`Update Source` <- rep("Tokyo.Metro.Govt", nrow(td_orig))
-td_orig$`Tests conducted (negative)` <- tests_summary$total_neg[match(as.Date(names(cases_per_day)), tests_summary$Date)]
-td_orig$`Tests conducted (total)` <- tests_summary$total_tests[match(as.Date(names(cases_per_day)), tests_summary$Date)]
-td_orig$`Tests conducted (total)`[is.na(td_orig$`Tests conducted (total)`)] <- 0
-td_orig$`Tests conducted (total)` <- cumsum(td_orig$`Tests conducted (total)`)
-head(td_orig)
-tail(td_orig)
+kd_orig <- matrix(NA, length(cases_per_day), 13)
+colnames(kd_orig) <- colnames(gd_orig)
+kd_orig <- as.data.frame(kd_orig)
+kd_orig$State <- kanagawa_data$居住地[1]
+kd_orig$Date <- as.Date(names(cases_per_day))
+kd_orig$Time <- rep(NA, nrow(kd_orig))
+kd_orig$`Cumulative case count` <- cumsum(cases_per_day)
+kd_orig$`Update Source` <- rep("kanagawa.Metro.Govt", nrow(kd_orig))
+kd_orig$`Tests conducted (negative)` <- tests_summary$total_neg[match(as.Date(names(cases_per_day)), tests_summary$Date)]
+kd_orig$`Tests conducted (total)` <- tests_summary$total_tests[match(as.Date(names(cases_per_day)), tests_summary$Date)]
+kd_orig$`Tests conducted (total)`[is.na(kd_orig$`Tests conducted (total)`)] <- 0
+kd_orig$`Tests conducted (total)` <- cumsum(kd_orig$`Tests conducted (total)`)
+head(kd_orig)
+tail(kd_orig)
 
-d <- td_orig %>%
+d <- kd_orig %>%
   clean_names() %>% 
   #filter(state == "VIC") %>%
   # deal with problem of multiple observations some days:
@@ -463,7 +490,7 @@ d <- td_orig %>%
   mutate(smoothed_confirm = fitted(loess(confirm ~ numeric_date, data = ., span = 0.1)))
 
 
-the_caption <- "Data gathered from Tokyo Metropolitan Government; analysis by https://stopcovid19.metro.tokyo.lg.jp/en/"  
+the_caption <- "Data gathered from Kanagawa Prefectural Government https://www.pref.kanagawa.jp/osirase/1369/\nAnalysis based on http://freerangestats.info"
 
 # Positivity plot:
 pdf("positivity.pdf", width = 6, height = 4)
@@ -473,7 +500,7 @@ d %>%
   geom_line(aes(y = ps2)) +
   scale_y_continuous(label = percent_format(accuracy = 1)) +
   labs(x = "", y = "Test positivity",
-       title = "Positive test rates for COVID-19 in Tokyo, Japan",
+       title = "Positive test rates for COVID-19 in Kanagawa, Japan",
        caption = the_caption)
 dev.off()
 
@@ -492,7 +519,7 @@ d %>%
   labs(x = "", y = "Number of new cases per day",
        colour = "",
        caption = the_caption,
-       title = "Covid-19 cases per day in Tokyo, Japan",
+       title = "Covid-19 cases per day in Kanagawa, Japan",
        subtitle = "With and without a small adjustment for test positivity. No adjustment for delay.")
 dev.off()
 
@@ -516,7 +543,7 @@ p_adj_conv <- d %>%
   )) %>%
   ggplot(aes(x = date, y = value, colour = variable)) +
   geom_line(size = 1.5) +
-  labs(title = "Back-projection of Tokyo Covid-19 infections",
+  labs(title = "Back-projection of kanagawa Covid-19 infections",
        subtitle = str_wrap("Non-parametric back-projection of incidence cases assuming 
        average delay of 10 days between infection and observation, using methods in 
                            Becker et al (1991). No correction for right truncation of data,
@@ -526,7 +553,7 @@ p_adj_conv <- d %>%
        colour = "")
 
 pdf("backprojection.pdf", width = 8, height = 16/3)
-print(p_adj_conv)
+print(p_adj_conv) + labs(caption = the_caption)
 dev.off()
 
 #------------Estimating R with EpiNow2---------------------
@@ -611,7 +638,8 @@ my_plot_estimates <- function(estimates, extra_title = ""){
 }
 
 pdf("estimates.pdf", width = 10, height = 20)
-my_plot_estimates(estimates)  
+my_plot_estimates(estimates)   +
+  labs(caption = the_caption)
 dev.off()
 
 #---------Based on positivity-adjusted-------------
@@ -627,12 +655,13 @@ estimates2 <- EpiNow2::epinow(reported_cases = d2,
                               adapt_delta = 0.95)
 
 pdf("estimates_pos.pdf", width = 10, height = 20)
-my_plot_estimates(estimates2, extra_title = " and positivity")
+my_plot_estimates(estimates2, extra_title = " and positivity") +
+  labs(caption = the_caption)
 dev.off()
 
 #---------Based on weekly-adjusted-------------
 
-weekly <- table(tokyo_data$曜日)[c(3, 6, 5, 4, 7, 1:2)]
+weekly <- table(kanagawa_data$曜日)[c(3, 6, 5, 4, 7, 1:2)]
 testing_rate <- weekly / mean(weekly)
 
 d3 <- d2
@@ -684,7 +713,8 @@ estimates3 <- EpiNow2::epinow(reported_cases = d3,
                               adapt_delta = 0.95)
 
 pdf("estimates_weekly.pdf", width = 10, height = 20)
-my_plot_estimates(estimates3, extra_title = " and seasonally adjusted")
+my_plot_estimates(estimates3, extra_title = " and seasonally adjusted") +
+  labs(caption = the_caption)
 dev.off()
 
 d4 <- d2
@@ -698,6 +728,12 @@ estimates4 <- EpiNow2::epinow(reported_cases = d4,
                               adapt_delta = 0.95)
 
 pdf("estimates_weekly_pos.pdf", width = 10, height = 20)
-my_plot_estimates(estimates4, extra_title = " positivity and seasonally adjusted")
+my_plot_estimates(estimates4, extra_title = " positivity and seasonally adjusted") +
+  labs(caption = the_caption)
+dev.off()
+
+png("estimates_weekly_pos.png", width = 10*75, height = 20*75)
+my_plot_estimates(estimates4, extra_title = " positivity and seasonally adjusted") +
+  labs(caption = the_caption)
 dev.off()
 
